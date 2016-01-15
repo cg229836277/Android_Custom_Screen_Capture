@@ -73,28 +73,28 @@ static SkBitmap::Config flinger2skia(PixelFormat f)
  * Method:    currentscreen
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint
+JNIEXPORT jbyteArray
 JNICALL ScreenCap_currentscreen(JNIEnv *env,
-		jclass clazz, jstring jpath) {
+		jclass clazz) {
 
 	ProcessState::self()->startThreadPool();
 
 	int32_t displayId = DEFAULT_DISPLAY_ID;
 
-	const char* fn = env->GetStringUTFChars(jpath,NULL);
-	LOGI("=====jpath:%s \n", fn);
+	//const char* fn = env->GetStringUTFChars(jpath,NULL);
+	//LOGI("=====jpath:%s \n", fn);
 
-	if (fn == NULL) {
-		LOGE("=====path = %s \n =====err: %s \n",fn, strerror(errno));
-		return 1;
-	}
-	int fd = -1;
-	fd = open(fn, O_WRONLY | O_CREAT | O_TRUNC, 0664);
-	LOGI("=====after open ,fd:%d \n",fd);
-	if (fd == -1) {
-		LOGE("=====err: %s \n", strerror(errno));
-		return 2;
-	}
+	//if (fn == NULL) {
+	//	LOGE("=====path = %s \n =====err: %s \n",fn, strerror(errno));
+	//	return 1;
+	//}
+	//int fd = -1;
+	//fd = open(fn, O_WRONLY | O_CREAT | O_TRUNC, 0664);
+	//LOGI("=====after open ,fd:%d \n",fd);
+	//if (fd == -1) {
+	//	LOGE("=====err: %s \n", strerror(errno));
+	//	return 2;
+	//}
 
 	void const* mapbase = MAP_FAILED;
 	ssize_t mapsize = -1;
@@ -145,7 +145,7 @@ JNICALL ScreenCap_currentscreen(JNIEnv *env,
 			close(fb);
 		}else{
 			LOGE("=====fb = %d , err: %s \n",fb, strerror(errno));
-			return 3;
+			return NULL;
 		}
 	}
 
@@ -157,19 +157,28 @@ JNICALL ScreenCap_currentscreen(JNIEnv *env,
 		SkImageEncoder::EncodeStream(&stream, b, SkImageEncoder::kPNG_Type,
 				SkImageEncoder::kDefaultQuality);
 		SkData* streamData = stream.copyToData();
-		write(fd, streamData->data(), streamData->size());
+		//write(fd, streamData->data(), streamData->size());
+		if(streamData->data() == NULL){
+			LOGE("ScreenCap , SCREEN DATA IS NULL");
+			return NULL;
+		}
+		char* buf = static_cast<char*>(const_cast<void*>(streamData->data()));
+		int length = streamData->size();
+		jbyteArray array = env->NewByteArray(length);
+		env->SetByteArrayRegion(array , 0 , length , reinterpret_cast<jbyte*>(buf));
 		streamData->unref();
+		return array;
 	}
-	close (fd);
+	//close (fd);
 	if (mapbase != MAP_FAILED) {
 		munmap((void *) mapbase, mapsize);
 	}
-	return 0;
+	return NULL;
 }
 
 
 static JNINativeMethod methods[] = {
-		{"currentscreen","(Ljava/lang/String;)I",(void*)ScreenCap_currentscreen},
+		{"currentscreen","()[B",(void*)ScreenCap_currentscreen},
 };
 
 static int registerNativeMethods(JNIEnv* env,const char* classname,JNINativeMethod* gMethods,int numMethods ){

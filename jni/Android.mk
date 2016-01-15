@@ -25,6 +25,8 @@ LOCAL_C_INCLUDES += \
 	external/skia/include/images \
 	external/skia/src/ports \
 	external/skia/include/utils
+	
+	env->SetByteArrayRegion (array, 0, len, reinterpret_cast<jbyte*>(buf));
 
 include $(BUILD_SHARED_LIBRARY)
 
